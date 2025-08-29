@@ -1,0 +1,44 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+  backend:
+    build:
+      context: ./backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/code
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - JWT_SECRET=supersecret
+      - REDIS_URL=redis://redis:6379/0
+      - DB_CONN=postgresql://postgres:postgres@db:5432/postgres
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+  frontend:
+    build:
+      context: ./frontend
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_SUPABASE_URL=${SUPABASE_URL}
+      - VITE_SUPABASE_KEY=${SUPABASE_KEY}
+    depends_on:
+      - backend
